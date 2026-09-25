@@ -193,6 +193,32 @@ else
   printf '       %s\n' $STALE
 fi
 
+# Links into the source repository must be permalinks to this version's tag.
+# A link to a branch drifts away from the package the moment the branch moves —
+# the package page would then describe a different version than it ships, and
+# Universe's own checks warn about it.
+BRANCHY="$(grep -nE "github\.com/$GH_USER/$PKG_NAME/(tree|blob)/" \
+             "$SRC_DIR/README.md" "$SRC_DIR/README.de.md" 2>/dev/null \
+           | grep -vE "/(tree|blob)/v$PKG_VERSION/" || true)"
+if [[ -z "$BRANCHY" ]]; then
+  pass "links into the source repository are pinned to v$PKG_VERSION"
+else
+  fail "these links are not pinned to the v$PKG_VERSION tag:"
+  printf '%s\n' "$BRANCHY" | sed 's/^/       /'
+fi
+
+# A permalink to a tag that was never pushed is a dead link on the package page
+if [[ -d "$SRC_DIR/.git" ]] \
+   && grep -qE "github\.com/$GH_USER/$PKG_NAME/(tree|blob)/v$PKG_VERSION/" \
+        "$SRC_DIR/README.md" "$SRC_DIR/README.de.md" 2>/dev/null; then
+  if [[ -n "$(git -C "$SRC_DIR" ls-remote --tags origin "refs/tags/v$PKG_VERSION" 2>/dev/null)" ]]; then
+    pass "tag v$PKG_VERSION exists on the source repository"
+  else
+    fail "the READMEs link to the tag v$PKG_VERSION but it is not pushed yet"
+    info "git tag v$PKG_VERSION && git push origin v$PKG_VERSION"
+  fi
+fi
+
 # Both READMEs are rendered with relative links; a dead one is visible on
 # Universe, so resolve every link and image target against the package. A
 # directory target counts as dead: it resolves locally and on GitHub but not on

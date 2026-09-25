@@ -102,7 +102,7 @@ Inhaltsblöcken aufrufen — beides ist gleichwertig.
 ## Beispiele
 
 Jedes Beispiel steht als Quelltext und als fertiges PDF im Ordner
-[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/main/examples).
+[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/v0.1.0/examples).
 
 ### Minimal
 

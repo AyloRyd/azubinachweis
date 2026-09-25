@@ -35,7 +35,7 @@ nothing and opens nothing.
 | --- | --- | --- |
 | 1 Locate the package | finds the directory holding `typst.toml` — next to the script, or under `<name>/<version>/` — and checks the manifest is the one the script targets | no `typst.toml` is found nearby, or it names a different package/version |
 | 2 Tools | `typst`, `git`, `gh`, `oxipng`, `python3` present; typst new enough for `compiler`; a sans-serif from the font stack installed; `gh` logged in | a tool is missing, typst is too old, or gh is not authenticated |
-| 3 Package contents | required files; manifest `name`/`version` match the folder; required manifest fields; `[template]` present; template imports `@preview/…` and not `../lib.typ`; every version reference current; both READMEs free of dead links; LICENSE matches the manifest | any of it is off |
+| 3 Package contents | required files; manifest `name`/`version` match the folder; required manifest fields; `[template]` present; template imports `@preview/…` and not `../lib.typ`; every version reference current; links into this repository pinned to the `v<version>` tag and that tag pushed; both READMEs free of dead links; LICENSE matches the manifest | any of it is off |
 | 4 Build | the package is staged into `$XDG_DATA_HOME/typst/packages/preview` so the examples can resolve their own `@preview/…` import, then every example compiles and its preview image is rendered | an example fails to compile or spills onto a second page |
 | 5 Install and test | the staged copy is reinstalled, now carrying the freshly built examples and images, then `typst init` into a temp dir and compiled | `typst init` fails or the fresh template is not exactly one page |
 | 6 Thumbnail | rendered from the *initialised* template at 250 PPI, optimised, measured | long edge < 1080 px, file > 3 MiB, or it is referenced inside the package |
@@ -80,6 +80,8 @@ links on the package page, which is why step 3 resolves every link.
 | `no typst.toml found near …` | run it from the package directory or the archive root, or set `SRC_DIR=/path/to/the/package` |
 | `template/main.typ uses a relative import` | it must import `@preview/azubinachweis:0.1.0`; a relative import is an automatic rejection |
 | `examples/x.typ → 2 pages` | tighten it in this order: `kopfspalten: 2`, then `luft: 0.6cm`, then smaller `mindesthoehe`/`unterschrifthoehe`, then `schriftgroesse: 9.5pt`. `weekly-report.typ` is the dense one and already spends the first four; a new compiler release changing line metrics is the usual reason this appears |
+| `these links are not pinned to the v0.1.0 tag` | a README links to `/tree/main/…`; repoint it at `/tree/v0.1.0/…`. Universe warns about branch links, because the page would drift away from the version the package actually ships |
+| `the READMEs link to the tag v0.1.0 but it is not pushed yet` | `git tag v0.1.0 && git push origin v0.1.0` |
 | `README.md has dead links` | a linked file was renamed or deleted; fix the path or restore the file. A link to a *directory* counts as dead too: it works locally and on GitHub but not on Universe, which serves files only — link the repository by URL instead |
 | `thumbnail long edge is N` | raise `--ppi`; 250 gives roughly 2000×2900 for A4 |
 | `other files changed` | the checkout has edits outside `packages/preview/azubinachweis`; a PR must contain only your package. `rm -rf ~/projects/typst-packages` and let the script clone it again |
@@ -153,15 +155,24 @@ Everything happens in **this** repository. The checkout under
 `upstream/main` and copies the package in from here on every run, so anything
 edited there by hand is discarded before the commit.
 
-Fix whatever needs fixing, then bump the version. It appears in ten places:
-`version` in `typst.toml`, plus nine `@preview/azubinachweis:<version>` imports
-across `template/main.typ`, the six examples and both READMEs.
+Fix whatever needs fixing, then bump the version. It appears in twelve places:
+`version` in `typst.toml`, nine `@preview/azubinachweis:<version>` imports
+across `template/main.typ`, the six examples and both READMEs, and the two
+permalinks into this repository that the READMEs carry.
 
 ```sh
 sed -i 's/^version = "0.1.0"/version = "0.1.1"/' typst.toml
 grep -rl 'azubinachweis:0\.1\.0' . --include='*.typ' --include='*.md' \
   | xargs sed -i 's/azubinachweis:0\.1\.0/azubinachweis:0.1.1/g'
-grep -rn 'azubinachweis:0\.1\.' . --include='*.typ' --include='*.md'   # check
+sed -i 's|/tree/v0\.1\.0/|/tree/v0.1.1/|g' README.md README.de.md
+grep -rn 'azubinachweis:0\.1\.\|/tree/v0\.1\.' . --include='*.typ' --include='*.md'   # check
+```
+
+Commit that, then tag it and push both — the READMEs now point at `v0.1.1`,
+and step 3 refuses to continue while that tag is missing from the remote:
+
+```sh
+git tag v0.1.1 && git push origin main v0.1.1
 ```
 
 Then set `PKG_VERSION="0.1.1"` at the top of `publish.sh` and work up through
@@ -387,6 +398,32 @@ if [[ -z "$STALE" ]]; then
 else
   fail "these files reference another version:"
   printf '       %s\n' $STALE
+fi
+
+# Links into the source repository must be permalinks to this version's tag.
+# A link to a branch drifts away from the package the moment the branch moves —
+# the package page would then describe a different version than it ships, and
+# Universe's own checks warn about it.
+BRANCHY="$(grep -nE "github\.com/$GH_USER/$PKG_NAME/(tree|blob)/" \
+             "$SRC_DIR/README.md" "$SRC_DIR/README.de.md" 2>/dev/null \
+           | grep -vE "/(tree|blob)/v$PKG_VERSION/" || true)"
+if [[ -z "$BRANCHY" ]]; then
+  pass "links into the source repository are pinned to v$PKG_VERSION"
+else
+  fail "these links are not pinned to the v$PKG_VERSION tag:"
+  printf '%s\n' "$BRANCHY" | sed 's/^/       /'
+fi
+
+# A permalink to a tag that was never pushed is a dead link on the package page
+if [[ -d "$SRC_DIR/.git" ]] \
+   && grep -qE "github\.com/$GH_USER/$PKG_NAME/(tree|blob)/v$PKG_VERSION/" \
+        "$SRC_DIR/README.md" "$SRC_DIR/README.de.md" 2>/dev/null; then
+  if [[ -n "$(git -C "$SRC_DIR" ls-remote --tags origin "refs/tags/v$PKG_VERSION" 2>/dev/null)" ]]; then
+    pass "tag v$PKG_VERSION exists on the source repository"
+  else
+    fail "the READMEs link to the tag v$PKG_VERSION but it is not pushed yet"
+    info "git tag v$PKG_VERSION && git push origin v$PKG_VERSION"
+  fi
 fi
 
 # Both READMEs are rendered with relative links; a dead one is visible on
