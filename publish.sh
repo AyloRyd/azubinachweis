@@ -194,14 +194,16 @@ else
 fi
 
 # Both READMEs are rendered with relative links; a dead one is visible on
-# Universe, so resolve every link and image target against the package.
+# Universe, so resolve every link and image target against the package. A
+# directory target counts as dead: it resolves locally and on GitHub but not on
+# Universe, which serves files only — link the repository by URL instead.
 for rd in README.md README.de.md; do
   BROKEN="$(python3 - "$SRC_DIR" "$rd" <<'PY'
 import os, re, sys
 root, name = sys.argv[1], sys.argv[2]
 text = open(os.path.join(root, name), encoding='utf8').read()
 targets = re.findall(r'!?\[[^\]]*\]\((?!https?:)([^)#]+)\)', text)
-missing = sorted({t for t in targets if not os.path.exists(os.path.join(root, t))})
+missing = sorted({t for t in targets if not os.path.isfile(os.path.join(root, t))})
 print('\n'.join(missing))
 PY
 )"

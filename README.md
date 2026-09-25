@@ -110,7 +110,7 @@ directly with content blocks — both are equivalent.
 ## Examples
 
 Each example is available as source and as a finished PDF in
-[`examples/`](examples).
+[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/main/examples).
 
 ### Minimal
 

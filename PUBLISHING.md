@@ -22,6 +22,11 @@ Work up through the three modes. Each prints `PASS` or `FAIL` per check and
 stops at the first real problem, so a clean `--check` means the package is
 submittable and a clean `--dry-run` means the commit is ready to review.
 
+Only `--check` is genuinely offline. The first `--dry-run` forks
+`typst/packages` to your GitHub account (step 7) — it has to, before it can
+clone it — so the very first one does leave a trace remotely. It still pushes
+nothing and opens nothing.
+
 ---
 
 ## What the script does
@@ -35,8 +40,8 @@ submittable and a clean `--dry-run` means the commit is ready to review.
 | 5 Install and test | the staged copy is reinstalled, now carrying the freshly built examples and images, then `typst init` into a temp dir and compiled | `typst init` fails or the fresh template is not exactly one page |
 | 6 Thumbnail | rendered from the *initialised* template at 250 PPI, optimised, measured | long edge < 1080 px, file > 3 MiB, or it is referenced inside the package |
 | 7 Fork and clone | forks `typst/packages` and clones your fork sparsely, or reuses an existing checkout | the fork cannot be cloned |
-| 8 Copy | copies the package into `packages/preview/azubinachweis/0.1.0` | the version is already committed, or other files changed |
-| 9 Commit | commits on branch `azubinachweis-0.1.0` | — |
+| 8 Copy | recreates the branch `azubinachweis-0.1.0` from a freshly fetched `upstream/main`, then copies the package into `packages/preview/azubinachweis/0.1.0` | the version is already on `upstream/main`, or the checkout has unrelated changes |
+| 9 Commit | stages and commits — always exactly one commit on top of `upstream/main`, however often the script is run | — |
 | 10 Push and PR | pushes and opens the pull request | you decline the prompt |
 
 Steps 1–6 run in every mode. `--check` stops after 6, `--dry-run` after 9.
@@ -44,8 +49,14 @@ Steps 1–6 run in every mode. `--check` stops after 6, `--dry-run` after 9.
 ### Two details worth knowing
 
 **It can be run from either place.** The script finds the package itself, so it
-works whether it sits inside the package directory or at the top of an archive
-next to `<name>/<version>/`. Override with `SRC_DIR=/path/to/0.1.0`.
+works whether it sits next to `typst.toml` — as it does in this repository —
+or at the top of an archive next to `<name>/<version>/`. Override the search
+with `SRC_DIR=/path/to/the/package`.
+
+**The checkout is scratch space, not a place to edit.** Step 8 rebuilds the
+branch from `upstream/main` and copies the package in from here, so anything
+changed by hand under `~/projects/typst-packages` is discarded on the next run.
+Edit in this repository; the checkout only ever mirrors it.
 
 **The script copies a whitelist, not the whole folder.** `PKG_FILES` lists what
 belongs to the package; `publish.sh` and `PUBLISHING.md` are project tooling and
@@ -66,13 +77,15 @@ links on the package page, which is why step 3 resolves every link.
 | `typst X is older than the declared compiler` | `sudo pacman -Syu typst`, or lower `compiler` in `typst.toml` if you have tested an older version |
 | `gh is not authenticated` | `gh auth login` |
 | `none of Arial/Helvetica/Liberation Sans is installed` | `sudo pacman -S ttf-liberation`. A warning in `--check`/`--dry-run`, a hard stop in full mode: the thumbnail is rendered here and published as-is, and a serif one can only be corrected by releasing a new version. `SKIP_FONT_CHECK=1` overrides. |
-| `no typst.toml found near …` | run it from the package directory or the archive root, or set `SRC_DIR=/path/to/0.1.0` |
+| `no typst.toml found near …` | run it from the package directory or the archive root, or set `SRC_DIR=/path/to/the/package` |
 | `template/main.typ uses a relative import` | it must import `@preview/azubinachweis:0.1.0`; a relative import is an automatic rejection |
-| `examples/x.typ → 2 pages` | tighten it: `kopfspalten: 2`, then `luft: 0.6cm`, then smaller `mindesthoehe`/`unterschrifthoehe`, then `schriftgroesse: 9.5pt` |
-| `README.md has dead links` | a linked file was renamed or deleted; fix the path or restore the file |
+| `examples/x.typ → 2 pages` | tighten it in this order: `kopfspalten: 2`, then `luft: 0.6cm`, then smaller `mindesthoehe`/`unterschrifthoehe`, then `schriftgroesse: 9.5pt`. `weekly-report.typ` is the dense one and already spends the first four; a new compiler release changing line metrics is the usual reason this appears |
+| `README.md has dead links` | a linked file was renamed or deleted; fix the path or restore the file. A link to a *directory* counts as dead too: it works locally and on GitHub but not on Universe, which serves files only — link the repository by URL instead |
 | `thumbnail long edge is N` | raise `--ppi`; 250 gives roughly 2000×2900 for A4 |
-| `other files changed` | your checkout has unrelated edits; a PR must contain only your package |
-| `already committed upstream` | published versions are never changed — bump to a new version, see below |
+| `other files changed` | the checkout has edits outside `packages/preview/azubinachweis`; a PR must contain only your package. `rm -rf ~/projects/typst-packages` and let the script clone it again |
+| `already committed upstream` | the version exists on `upstream/main`. Published versions are never changed — bump to a new one, see below |
+| `could not clone your fork` | `gh` is active as a different account than `GH_USER`, so `gh repo fork` forked to that account while the clone looked under `GH_USER`. Check with `gh api user --jq .login`, fix with `gh auth switch --user AyloRyd` |
+| `push failed` | the branch exists on your fork from an earlier submission and has diverged. Compare, then `git -C ~/projects/typst-packages push --force-with-lease origin azubinachweis-0.1.0` — an open pull request picks the force-push up by itself |
 
 ---
 
@@ -89,17 +102,29 @@ are fine. Names may not contain "typst", and multi-word names use `kebab-case`.
 | `azubinachweis` | Chosen. Not an established term but a coined compound of "Azubi" and "Nachweis" — recognisable without claiming the search term. |
 
 If a reviewer still finds it too close, `wochenwerk`, `lehrjahr` or `heftfuchs`
-clear the rule. Renaming before the merge is cheap:
+clear the rule. Renaming before the merge is cheap, but it happens here, not in
+the checkout — renaming there would be undone by the next run:
 
 ```sh
-cd ~/projects/typst-packages/packages/preview
-git mv azubinachweis NEW_NAME
-cd NEW_NAME/0.1.0
-grep -rl azubinachweis . | xargs sed -i 's/azubinachweis/NEW_NAME/g'
-grep -rn azubinachweis .        # must come back empty
+sed -i 's/azubinachweis/NEW_NAME/g' typst.toml lib.typ README.md README.de.md \
+  template/main.typ examples/*.typ
+sed -i 's/^PKG_NAME="azubinachweis"/PKG_NAME="NEW_NAME"/' publish.sh
+grep -rn azubinachweis typst.toml lib.typ README.md README.de.md template examples
 ```
 
-Afterwards it is not possible — published packages are never renamed or removed.
+That last grep must come back empty. Then drop the checkout — its sparse
+pattern is pinned to the old name and would leave the new directory untracked:
+
+```sh
+rm -rf ~/projects/typst-packages
+```
+
+Work up through the three modes again. The new name gets its own branch and its
+own pull request, so close the old one; the branch name follows `PKG_NAME`, and
+a pull request cannot be moved to a different branch.
+
+After the merge it is not possible — published packages are never renamed or
+removed.
 
 ---
 
@@ -109,30 +134,46 @@ The package works as soon as the PR is merged and CI has run. It can take up to
 30 minutes to appear on [Typst Universe](https://typst.app/universe/).
 
 ```sh
-gh pr checks --repo typst/packages         # watch CI
+gh pr checks 5919 --repo typst/packages --watch    # 0.1.0; use your own number
 rm -rf ~/.local/share/typst/packages/preview/azubinachweis/0.1.0
 ```
 
-Removing the local copy makes sure you are using the published package and not
-your working tree.
+The number is required from outside the checkout, and the script prints the
+pull request URL when it finishes. Removing the local copy makes sure you are
+using the published package and not your working tree — step 4 installs it
+there on every run, so it will be back after the next one.
 
 ## Releasing a new version
 
 Submitted packages are never changed or removed; corrections ship as a new
-version beside the old one.
+version beside the old one — even a typo in the README costs a version bump.
+
+Everything happens in **this** repository. The checkout under
+`~/projects/typst-packages` is scratch space: step 8 recreates the branch from
+`upstream/main` and copies the package in from here on every run, so anything
+edited there by hand is discarded before the commit.
+
+Fix whatever needs fixing, then bump the version. It appears in ten places:
+`version` in `typst.toml`, plus nine `@preview/azubinachweis:<version>` imports
+across `template/main.typ`, the six examples and both READMEs.
 
 ```sh
-cd ~/projects/typst-packages
-git fetch upstream && git checkout -b azubinachweis-0.1.1 upstream/main
-cp -r packages/preview/azubinachweis/0.1.0 packages/preview/azubinachweis/0.1.1
-cd packages/preview/azubinachweis/0.1.1
 sed -i 's/^version = "0.1.0"/version = "0.1.1"/' typst.toml
-grep -rl 'azubinachweis:0.1.0' . | xargs sed -i 's/azubinachweis:0\.1\.0/azubinachweis:0.1.1/g'
-grep -rn 'azubinachweis:0\.1\.' .          # check
+grep -rl 'azubinachweis:0\.1\.0' . --include='*.typ' --include='*.md' \
+  | xargs sed -i 's/azubinachweis:0\.1\.0/azubinachweis:0.1.1/g'
+grep -rn 'azubinachweis:0\.1\.' . --include='*.typ' --include='*.md'   # check
 ```
 
-Then set `PKG_VERSION="0.1.1"` at the top of `publish.sh` and run it again.
-Updates must be submitted by whoever submitted the previous version.
+Then set `PKG_VERSION="0.1.1"` at the top of `publish.sh` and work up through
+the three modes again. Step 3 compares every version reference against
+`PKG_VERSION` and fails if one was missed, so a half-done bump cannot reach a
+pull request. The submission lands on its own branch `azubinachweis-0.1.1` as a
+separate pull request; 0.1.0 stays where it is.
+
+Two things that do not change. `@preview/azubinachweis:0.1.0` keeps working for
+everyone who already imports it — users move to a new version by editing that
+line themselves, nothing is pushed on them. And updates must be submitted by
+whoever submitted the previous version.
 
 ---
 
@@ -147,9 +188,10 @@ Updates must be submitted by whoever submitted the previous version.
 
 ## The script
 
-Save it as `publish.sh` — either inside the package directory next to
-`typst.toml`, or one level above next to the `azubinachweis/` folder; it finds
-the package either way. Then `chmod +x publish.sh`.
+It lives at the root of this repository, next to `typst.toml`. It also works
+one level above a `<name>/<version>/` folder, the way a distribution archive is
+laid out — it finds the package either way. If you copy it somewhere new,
+`chmod +x publish.sh`.
 
 ```bash
 #!/usr/bin/env bash
@@ -348,14 +390,16 @@ else
 fi
 
 # Both READMEs are rendered with relative links; a dead one is visible on
-# Universe, so resolve every link and image target against the package.
+# Universe, so resolve every link and image target against the package. A
+# directory target counts as dead: it resolves locally and on GitHub but not on
+# Universe, which serves files only — link the repository by URL instead.
 for rd in README.md README.de.md; do
   BROKEN="$(python3 - "$SRC_DIR" "$rd" <<'PY'
 import os, re, sys
 root, name = sys.argv[1], sys.argv[2]
 text = open(os.path.join(root, name), encoding='utf8').read()
 targets = re.findall(r'!?\[[^\]]*\]\((?!https?:)([^)#]+)\)', text)
-missing = sorted({t for t in targets if not os.path.exists(os.path.join(root, t))})
+missing = sorted({t for t in targets if not os.path.isfile(os.path.join(root, t))})
 print('\n'.join(missing))
 PY
 )"
