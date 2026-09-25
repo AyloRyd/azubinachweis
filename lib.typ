@@ -241,6 +241,121 @@
 }
 
 // -----------------------------------------------------------------------------
+// Fitting
+// -----------------------------------------------------------------------------
+
+/// Solve the elastic heights so that a sheet stays on one page.
+///
+/// A sheet is a linear stack — rigid pieces separated by `luft`, one writing
+/// area per empty section, the signature block at the foot — so its height is
+/// affine in the three elastic amounts: `base` is the stack with all of them
+/// at zero, and `gaps`, `blanks` and `feet` are how many times each occurs.
+/// _lay measures those; this is the arithmetic.
+///
+/// Overflow is spent in a fixed order — writing areas first, because a blank
+/// box tolerates it best, then the gaps between sections, then the signature
+/// fields — and never past the floors. When even the floors do not fit, the
+/// floors are what comes back and the sheet runs onto a second page. That is
+/// the honest outcome; the alternative is a form too cramped to write on.
+/// -> dictionary
+#let _fit(
+  base, available,
+  gaps, blanks, feet,
+  luft, luft-min,
+  mindesthoehe, mindesthoehe-min,
+  unterschrifthoehe, unterschrifthoehe-min,
+) = {
+  // em-relative lengths cannot be compared or divided before they are resolved
+  let over = (
+    base - available
+      + gaps * luft.to-absolute()
+      + blanks * mindesthoehe.to-absolute()
+      + feet * unterschrifthoehe.to-absolute()
+  )
+
+  // It fits. Hand the amounts back exactly as they came in — resolving them to
+  // absolute lengths here would nudge the rasterisation of a sheet that needed
+  // no fitting at all.
+  if over <= 0pt {
+    return (luft: luft, mindesthoehe: mindesthoehe, unterschrifthoehe: unterschrifthoehe)
+  }
+
+  // Past this point the amounts are arithmetic, so resolve them once
+  let luft = luft.to-absolute()
+  let mindesthoehe = mindesthoehe.to-absolute()
+  let unterschrifthoehe = unterschrifthoehe.to-absolute()
+
+  // Shrink one slot towards its floor, returning the new amount and what is
+  // left of the overflow.
+  let spend(amount, floor, count, over) = {
+    if count <= 0 or over <= 0pt { return (amount, over) }
+    let room = calc.max(0pt, amount - floor.to-absolute()) * count
+    let take = calc.min(room, over)
+    (amount - take / count, over - take)
+  }
+
+  let (mindesthoehe, over) = spend(mindesthoehe, mindesthoehe-min, blanks, over)
+  let (luft, over) = spend(luft, luft-min, gaps, over)
+  let (unterschrifthoehe, over) = spend(unterschrifthoehe, unterschrifthoehe-min, feet, over)
+
+  (luft: luft, mindesthoehe: mindesthoehe, unterschrifthoehe: unterschrifthoehe)
+}
+
+/// Render `sheet` at its natural elastic amounts, or at shrunken ones when it
+/// would otherwise not fit.
+///
+/// `sheet` takes the three elastic amounts plus `spacer`, which the probes
+/// switch off because a `1fr` has no meaning in the unbounded region a
+/// measurement happens in. Setting one amount to a unit and measuring again
+/// says how many times it occurs, so the counts come out of the layout itself
+/// rather than from a second set of rules that could drift away from it: a
+/// section added later is counted without touching any of this.
+/// -> content
+#let _lay(sheet, anpassen, luft, luft-min, mindesthoehe, mindesthoehe-min, unterschrifthoehe, unterschrifthoehe-min) = {
+  if not anpassen {
+    return sheet(luft: luft, mindesthoehe: mindesthoehe, unterschrifthoehe: unterschrifthoehe)
+  }
+  layout(size => {
+    let probe(l, m, u) = measure(
+      block(width: size.width, sheet(luft: l, mindesthoehe: m, unterschrifthoehe: u, spacer: false)),
+    ).height
+
+    let unit = 1cm
+    let bare = probe(0pt, 0pt, 0pt)
+
+    // How many times each elastic amount occurs, read off the layout itself
+    let gaps = calc.round((probe(unit, 0pt, 0pt) - bare) / unit)
+    let blanks = calc.round((probe(0pt, unit, 0pt) - bare) / unit)
+    let feet = calc.round((probe(0pt, 0pt, unit) - bare) / unit)
+
+    // A measurement carries the block spacing below its last element; a page
+    // drops that spacing at the bottom margin. Left in, every sheet would
+    // measure one spacing taller than it is and sheets that already fit would
+    // be shrunk. Measure the spacing rather than assume it — appending an
+    // empty, zero-height block adds exactly one — so the correction follows
+    // the font size instead of hard-coding 1.2em of a 10pt body.
+    let tail = measure(block(
+      width: size.width,
+      sheet(luft: 0pt, mindesthoehe: 0pt, unterschrifthoehe: 0pt, spacer: false)
+        + block(height: 0pt, width: 100%, []),
+    )).height - bare
+
+    let fit = _fit(
+      bare - tail, size.height,
+      gaps, blanks, feet,
+      luft, luft-min,
+      mindesthoehe, mindesthoehe-min,
+      unterschrifthoehe, unterschrifthoehe-min,
+    )
+    sheet(
+      luft: fit.luft,
+      mindesthoehe: fit.mindesthoehe,
+      unterschrifthoehe: fit.unterschrifthoehe,
+    )
+  })
+}
+
+// -----------------------------------------------------------------------------
 // Weekly report
 // -----------------------------------------------------------------------------
 
@@ -305,6 +420,17 @@
 /// - polster (length): Cell padding.
 /// - mindesthoehe (length): Height of empty sections, i.e. the writing area.
 /// - rand (dictionary): Page margins, passed through to `page(margin: ..)`.
+/// - anpassen (bool): Shrink the elastic heights — the writing areas, the gaps
+///   between the sections, the signature fields — as far as the floors below
+///   allow, so that a sheet that is slightly too tall still comes out on one
+///   page. Nothing is shrunk while it already fits, and a sheet that does not
+///   fit even at the floors is allowed onto a second page rather than being
+///   squeezed into a form too cramped to write on. `false` uses every amount
+///   exactly as given.
+/// - luft-min (length): Smallest `luft` the fitting may use.
+/// - mindesthoehe-min (length): Smallest `mindesthoehe` the fitting may use.
+/// - unterschrifthoehe-min (length): Smallest `unterschrifthoehe` the fitting
+///   may use.
 /// -> content
 #let nachweis(
   // header fields — empty ones do not appear
@@ -349,6 +475,12 @@
   polster: 11pt,
   mindesthoehe: 2cm,
   rand: (x: 2.2cm, top: 2cm, bottom: 1.8cm),
+  // shrink-to-fit: the floors below are as small as the sheet may get before
+  // a second page is preferred to an unusable form
+  anpassen: true,
+  luft-min: 0.45cm,
+  mindesthoehe-min: 1.2cm,
+  unterschrifthoehe-min: 1.4cm,
   // content blocks: [Tätigkeitsbericht][Schulbericht][Bemerkungen]
   ..inhalte,
 ) = {
@@ -359,53 +491,70 @@
   let bemerkungen = _block(blocks, 2, bemerkungen)
 
   let labels = standard-bezeichnungen + bezeichnungen
-  let (section, header-table, signatures, ..) = _parts(
-    labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, mindesthoehe,
-  )
 
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
 
-  let title = _title-line(titel, kalenderwoche, jahr, name)
-  if not _empty(title) {
-    text(size: titelgroesse, weight: "bold", fill: kopftext)[#title]
-    v(luft)
-  }
-
-  header-table(
-    _header-fields(
-      labels, name, ausbildungsjahr, beruf, fachrichtung,
-      betrieb, ausbilder, zeitraum, abteilung, heft-nr,
-    ),
-    label-width: kopfspalte,
-    columns: kopfspalten,
-  )
-
-  v(luft)
-  section(labels.taetigkeiten, taetigkeiten, hours: stunden.at("betrieb", default: none))
-
-  if not _empty(unterweisungen) {
-    v(luft)
-    section(
-      labels.unterweisungen, unterweisungen,
-      hours: stunden.at("unterweisung", default: none),
+  // The sheet as a function of the elastic amounts, so that the probes taken
+  // in _lay and the final render go through exactly the same code.
+  let sheet(
+    luft: luft,
+    mindesthoehe: mindesthoehe,
+    unterschrifthoehe: unterschrifthoehe,
+    spacer: true,
+  ) = {
+    let (section, header-table, signatures, ..) = _parts(
+      labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, mindesthoehe,
     )
-  }
 
-  v(luft)
-  section(labels.schule, schulbericht, hours: stunden.at("schule", default: none))
+    let title = _title-line(titel, kalenderwoche, jahr, name)
+    if not _empty(title) {
+      text(size: titelgroesse, weight: "bold", fill: kopftext)[#title]
+      v(luft)
+    }
 
-  v(luft)
-  section(labels.bemerkungen, bemerkungen)
+    header-table(
+      _header-fields(
+        labels, name, ausbildungsjahr, beruf, fachrichtung,
+        betrieb, ausbilder, zeitraum, abteilung, heft-nr,
+      ),
+      label-width: kopfspalte,
+      columns: kopfspalten,
+    )
 
-  if not _empty(weiteres) {
     v(luft)
-    section(labels.weiteres, weiteres)
+    section(labels.taetigkeiten, taetigkeiten, hours: stunden.at("betrieb", default: none))
+
+    if not _empty(unterweisungen) {
+      v(luft)
+      section(
+        labels.unterweisungen, unterweisungen,
+        hours: stunden.at("unterweisung", default: none),
+      )
+    }
+
+    v(luft)
+    section(labels.schule, schulbericht, hours: stunden.at("schule", default: none))
+
+    v(luft)
+    section(labels.bemerkungen, bemerkungen)
+
+    if not _empty(weiteres) {
+      v(luft)
+      section(labels.weiteres, weiteres)
+    }
+
+    if spacer { v(1fr) }
+    signatures(unterschriften, height: unterschrifthoehe)
   }
 
-  v(1fr)
-  signatures(unterschriften, height: unterschrifthoehe)
+  _lay(
+    sheet, anpassen,
+    luft, luft-min,
+    mindesthoehe, mindesthoehe-min,
+    unterschrifthoehe, unterschrifthoehe-min,
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -478,6 +627,11 @@
   mindesthoehe: 2cm,
   spalten: (datum: 2.7cm, tag: 2.3cm, stunden: 1.5cm),
   rand: (x: 2.2cm, top: 2cm, bottom: 1.8cm),
+  // shrink-to-fit, see nachweis
+  anpassen: true,
+  luft-min: 0.45cm,
+  mindesthoehe-min: 1.2cm,
+  unterschrifthoehe-min: 1.4cm,
   // content blocks: [Schulbericht][Bemerkungen]
   ..inhalte,
 ) = {
@@ -487,92 +641,107 @@
   let bemerkungen = _block(blocks, 1, bemerkungen)
 
   let labels = standard-bezeichnungen + bezeichnungen
-  let (section, head-cell, header-table, signatures, as-content, stroke-style, ..) = _parts(
-    labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, mindesthoehe,
-  )
-
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
 
-  let title = _title-line(titel, kalenderwoche, jahr, name)
-  if not _empty(title) {
-    text(size: titelgroesse, weight: "bold", fill: kopftext)[#title]
+  // The sheet as a function of the elastic amounts, see nachweis
+  let sheet(
+    luft: luft,
+    mindesthoehe: mindesthoehe,
+    unterschrifthoehe: unterschrifthoehe,
+    spacer: true,
+  ) = {
+    let (section, head-cell, header-table, signatures, as-content, stroke-style, ..) = _parts(
+      labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, mindesthoehe,
+    )
+
+    let title = _title-line(titel, kalenderwoche, jahr, name)
+    if not _empty(title) {
+      text(size: titelgroesse, weight: "bold", fill: kopftext)[#title]
+      v(luft)
+    }
+
+    header-table(
+      _header-fields(
+        labels, name, ausbildungsjahr, beruf, fachrichtung,
+        betrieb, ausbilder, zeitraum, abteilung, heft-nr,
+      ),
+      label-width: kopfspalte,
+      columns: kopfspalten,
+    )
+
+    if not _empty(vorspann) {
+      v(luft)
+      as-content(vorspann)
+    }
+
+    // Only show a column when at least one day fills it
+    let has-weekday = tage.any(d => d.at("tag", default: none) != none)
+    let has-hours = tage.any(d => d.at("stunden", default: none) != none)
+
+    let widths = (spalten.at("datum", default: 2.7cm),)
+    if has-weekday { widths.push(spalten.at("tag", default: 2.3cm)) }
+    widths.push(1fr)
+    if has-hours { widths.push(spalten.at("stunden", default: 1.5cm)) }
+
+    let header-cells = (head-cell(labels.datum),)
+    if has-weekday { header-cells.push(head-cell(labels.tag)) }
+    header-cells.push(head-cell(labels.taetigkeit))
+    if has-hours { header-cells.push(head-cell(labels.stunden)) }
+
+    let rows = ()
+    for day in tage {
+      rows.push([#day.at("datum", default: "")])
+      if has-weekday { rows.push([#day.at("tag", default: "")]) }
+      rows.push(as-content(day.at("inhalt", default: "")))
+      if has-hours { rows.push(align(center)[#day.at("stunden", default: "")]) }
+    }
+
+    // Total row
+    if summe and has-hours {
+      let total = tage.fold(0, (sum, day) => sum + day.at("stunden", default: 0))
+      let leading-cells = if has-weekday { 2 } else { 1 }
+      rows += ((table.cell(fill: kopfgrau)[],) * leading-cells)
+      rows.push(table.cell(fill: kopfgrau)[
+        #text(weight: "bold", fill: kopftext)[#labels.summe]
+      ])
+      rows.push(table.cell(fill: kopfgrau)[
+        #align(center)[#text(weight: "bold", fill: kopftext)[#total]]
+      ])
+    }
+
     v(luft)
+    table(
+      columns: widths,
+      stroke: stroke-style,
+      inset: (x: polster, y: 9pt),
+      align: (x, y) => if y == 0 { left } else { left + top },
+      ..header-cells,
+      ..rows,
+    )
+
+    v(luft)
+    section(labels.schule, schulbericht, hours: stunden.at("schule", default: none))
+
+    v(luft)
+    section(labels.bemerkungen, bemerkungen)
+
+    if not _empty(weiteres) {
+      v(luft)
+      section(labels.weiteres, weiteres)
+    }
+
+    if spacer { v(1fr) }
+    signatures(unterschriften, height: unterschrifthoehe)
   }
 
-  header-table(
-    _header-fields(
-      labels, name, ausbildungsjahr, beruf, fachrichtung,
-      betrieb, ausbilder, zeitraum, abteilung, heft-nr,
-    ),
-    label-width: kopfspalte,
-    columns: kopfspalten,
+  _lay(
+    sheet, anpassen,
+    luft, luft-min,
+    mindesthoehe, mindesthoehe-min,
+    unterschrifthoehe, unterschrifthoehe-min,
   )
-
-  if not _empty(vorspann) {
-    v(luft)
-    as-content(vorspann)
-  }
-
-  // Only show a column when at least one day fills it
-  let has-weekday = tage.any(d => d.at("tag", default: none) != none)
-  let has-hours = tage.any(d => d.at("stunden", default: none) != none)
-
-  let widths = (spalten.at("datum", default: 2.7cm),)
-  if has-weekday { widths.push(spalten.at("tag", default: 2.3cm)) }
-  widths.push(1fr)
-  if has-hours { widths.push(spalten.at("stunden", default: 1.5cm)) }
-
-  let header-cells = (head-cell(labels.datum),)
-  if has-weekday { header-cells.push(head-cell(labels.tag)) }
-  header-cells.push(head-cell(labels.taetigkeit))
-  if has-hours { header-cells.push(head-cell(labels.stunden)) }
-
-  let rows = ()
-  for day in tage {
-    rows.push([#day.at("datum", default: "")])
-    if has-weekday { rows.push([#day.at("tag", default: "")]) }
-    rows.push(as-content(day.at("inhalt", default: "")))
-    if has-hours { rows.push(align(center)[#day.at("stunden", default: "")]) }
-  }
-
-  // Total row
-  if summe and has-hours {
-    let total = tage.fold(0, (sum, day) => sum + day.at("stunden", default: 0))
-    let leading-cells = if has-weekday { 2 } else { 1 }
-    rows += ((table.cell(fill: kopfgrau)[],) * leading-cells)
-    rows.push(table.cell(fill: kopfgrau)[
-      #text(weight: "bold", fill: kopftext)[#labels.summe]
-    ])
-    rows.push(table.cell(fill: kopfgrau)[
-      #align(center)[#text(weight: "bold", fill: kopftext)[#total]]
-    ])
-  }
-
-  v(luft)
-  table(
-    columns: widths,
-    stroke: stroke-style,
-    inset: (x: polster, y: 9pt),
-    align: (x, y) => if y == 0 { left } else { left + top },
-    ..header-cells,
-    ..rows,
-  )
-
-  v(luft)
-  section(labels.schule, schulbericht, hours: stunden.at("schule", default: none))
-
-  v(luft)
-  section(labels.bemerkungen, bemerkungen)
-
-  if not _empty(weiteres) {
-    v(luft)
-    section(labels.weiteres, weiteres)
-  }
-
-  v(1fr)
-  signatures(unterschriften, height: unterschrifthoehe)
 }
 
 // -----------------------------------------------------------------------------
@@ -631,6 +800,13 @@
   luft: 0.85cm,
   polster: 11pt,
   rand: (x: 2.2cm, top: 3.5cm, bottom: 2cm),
+  // shrink-to-fit, see nachweis. A cover sheet has no empty sections, so
+  // mindesthoehe exists here only to keep the three functions alike.
+  anpassen: true,
+  mindesthoehe: 2cm,
+  luft-min: 0.45cm,
+  mindesthoehe-min: 1.2cm,
+  unterschrifthoehe-min: 1.4cm,
   // content block: [free addition below the table]
   ..inhalte,
 ) = {
@@ -638,47 +814,62 @@
   let zusatz = _block(inhalte.pos(), 0, zusatz)
 
   let labels = standard-bezeichnungen + bezeichnungen
-  let (header-table, signatures, as-content, ..) = _parts(
-    labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, 2cm,
-  )
-
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
 
-  align(center)[
-    #text(size: titelgroesse, weight: "bold", fill: kopftext)[
-      #if titel == auto { labels.deckblatt-titel } else { titel }
+  // The sheet as a function of the elastic amounts, see nachweis
+  let sheet(
+    luft: luft,
+    mindesthoehe: mindesthoehe,
+    unterschrifthoehe: unterschrifthoehe,
+    spacer: true,
+  ) = {
+    let (header-table, signatures, as-content, ..) = _parts(
+      labels, linie, kopfgrau, kopftext, fliess, polster, rahmen, mindesthoehe,
+    )
+
+    align(center)[
+      #text(size: titelgroesse, weight: "bold", fill: kopftext)[
+        #if titel == auto { labels.deckblatt-titel } else { titel }
+      ]
     ]
-  ]
 
-  v(luft * 2)
+    v(luft * 2)
 
-  header-table(
-    (
-      (labels.heft, heft-nr),
-      (labels.name, name),
-      (labels.geburtsdatum, geburtsdatum),
-      (labels.adresse, adresse),
-      (labels.beruf, beruf),
-      (labels.fachrichtung, fachrichtung),
-      (labels.betrieb, betrieb),
-      (labels.ausbilder, ausbilder),
-      (labels.ausbildungsjahr, ausbildungsjahr),
-      (labels.beginn, beginn),
-      (labels.ende, ende),
-    ),
-    label-width: if kopfspalte == auto and kopfspalten == 1 { 6.4cm } else { kopfspalte },
-    columns: kopfspalten,
+    header-table(
+      (
+        (labels.heft, heft-nr),
+        (labels.name, name),
+        (labels.geburtsdatum, geburtsdatum),
+        (labels.adresse, adresse),
+        (labels.beruf, beruf),
+        (labels.fachrichtung, fachrichtung),
+        (labels.betrieb, betrieb),
+        (labels.ausbilder, ausbilder),
+        (labels.ausbildungsjahr, ausbildungsjahr),
+        (labels.beginn, beginn),
+        (labels.ende, ende),
+      ),
+      label-width: if kopfspalte == auto and kopfspalten == 1 { 6.4cm } else { kopfspalte },
+      columns: kopfspalten,
+    )
+
+    if not _empty(zusatz) {
+      v(luft)
+      as-content(zusatz)
+    }
+
+    if unterschriften.len() > 0 {
+      if spacer { v(1fr) }
+      signatures(unterschriften, height: unterschrifthoehe)
+    }
+  }
+
+  _lay(
+    sheet, anpassen,
+    luft, luft-min,
+    mindesthoehe, mindesthoehe-min,
+    unterschrifthoehe, unterschrifthoehe-min,
   )
-
-  if not _empty(zusatz) {
-    v(luft)
-    as-content(zusatz)
-  }
-
-  if unterschriften.len() > 0 {
-    v(1fr)
-    signatures(unterschriften, height: unterschrifthoehe)
-  }
 }

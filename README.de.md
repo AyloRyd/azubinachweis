@@ -227,6 +227,26 @@ Inhaltsblöcke](#abschnitte-als-inhaltsbl%C3%B6cke).
 | `mindesthoehe` | Höhe leerer Abschnitte (Schreibfläche) | `2cm` |
 | `rand` | Seitenränder | `(x: 2.2cm, top: 2cm, bottom: 1.8cm)` |
 
+### Anpassung
+
+Ein Nachweis, der nur knapp zu hoch gerät, wird verkleinert statt auf zwei
+Seiten umbrochen. Zuerst geben die Schreibflächen der leeren Abschnitte nach —
+ein leeres Feld verträgt es am besten —, dann die Abstände zwischen den
+Abschnitten, dann die Unterschriftenfelder, jeweils nur bis zur Untergrenze.
+
+Solange der Nachweis ohnehin passt, wird nichts angetastet: ein von Hand
+eingerichtetes Layout sieht genauso aus wie zuvor. Und wenn selbst die
+Untergrenzen nicht reichen, darf der Nachweis auf eine zweite Seite — ein
+Formular, in das sich nicht mehr schreiben lässt, ist schlechter als ein
+zweites Blatt.
+
+| Parameter | Bedeutung | Standard |
+| --- | --- | --- |
+| `anpassen` | verkleinert so weit nötig, um auf einer Seite zu bleiben | `true` |
+| `luft-min` | Untergrenze für `luft` | `0.45cm` |
+| `mindesthoehe-min` | Untergrenze für `mindesthoehe` | `1.2cm` |
+| `unterschrifthoehe-min` | Untergrenze für `unterschrifthoehe` | `1.4cm` |
+
 ## `tagesbericht` — Tagesbericht
 
 Kennt alle Parameter von `nachweis` (außer `unterweisungen`) und zusätzlich:
@@ -328,12 +348,21 @@ for f in kw*.typ; do typst compile "$f"; done
 
 ## Wenn es nicht auf eine Seite passt
 
+Meistens passt es inzwischen von selbst: der Nachweis verkleinert zuerst seine
+eigenen Schreibflächen und Abstände, siehe [Anpassung](#anpassung). Was folgt,
+gilt für die Fälle, in denen auch das nicht reicht — oder in denen Sie alles
+selbst setzen möchten und `anpassen: false` gewählt haben.
+
 In dieser Reihenfolge nachjustieren:
 
 1. `kopfspalten: 2` — halbiert die Höhe der Kopfdatentabelle
 2. `luft: 0.6cm` — engere Abstände zwischen den Abschnitten
 3. `mindesthoehe: 1.5cm` und `unterschrifthoehe: 1.5cm` — kleinere Schreibflächen
 4. `schriftgroesse: 9.5pt`
+
+Niedrigere Untergrenzen — `mindesthoehe-min` und die beiden anderen —
+verschaffen denselben Platz, ohne die übergebenen Werte anzutasten, und nur
+dort, wo er wirklich gebraucht wird.
 
 ## Lizenz
 

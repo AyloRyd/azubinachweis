@@ -239,6 +239,25 @@ blocks](#sections-as-content-blocks).
 | `mindesthoehe` | height of empty sections (*Mindesthöhe*), i.e. the writing area | `2cm` |
 | `rand` | page margins (*Rand*) | `(x: 2.2cm, top: 2cm, bottom: 1.8cm)` |
 
+### Fitting (*Anpassung*)
+
+A sheet that comes out slightly too tall is shrunk rather than broken over two
+pages. The writing areas of the empty sections give way first — a blank box
+tolerates it best — then the gaps between sections, then the signature fields,
+each only as far as its floor.
+
+Nothing is touched while the sheet already fits, so a layout you tuned by hand
+renders exactly as it did before. And when even the floors are not enough, the
+sheet is allowed onto a second page: a form too cramped to write on is worse
+than a second sheet.
+
+| Parameter | Meaning | Default |
+| --- | --- | --- |
+| `anpassen` | shrink as needed to stay on one page (*Anpassung*) | `true` |
+| `luft-min` | floor for `luft` | `0.45cm` |
+| `mindesthoehe-min` | floor for `mindesthoehe` | `1.2cm` |
+| `unterschrifthoehe-min` | floor for `unterschrifthoehe` | `1.4cm` |
+
 ## `tagesbericht` — daily report (*Tagesbericht*)
 
 Recommended by the chambers for the skilled trades and technical occupations
@@ -365,12 +384,21 @@ for f in kw*.typ; do typst compile "$f"; done
 
 ## When it does not fit on one page
 
+Usually it now does: the sheet shrinks its own writing areas and gaps first,
+see [Fitting](#fitting-anpassung). What follows is for when even that is not
+enough — or when you would rather place everything yourself and have set
+`anpassen: false`.
+
 Adjust in this order:
 
 1. `kopfspalten: 2` — halves the height of the header table
 2. `luft: 0.6cm` — tighter spacing between sections
 3. `mindesthoehe: 1.5cm` and `unterschrifthoehe: 1.5cm` — smaller writing areas
 4. `schriftgroesse: 9.5pt`
+
+Lowering the floors — `mindesthoehe-min` and its two siblings — buys the same
+room without touching the values you pass, and spends it only on the sheets
+that actually need it.
 
 ## Licence
 
