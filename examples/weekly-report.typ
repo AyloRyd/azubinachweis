@@ -2,7 +2,7 @@
 // dem zusätzlichen Abschnitt „Unterweisungen" und vier Unterschriftenfeldern.
 // Der zweispaltige Kopf (kopfspalten: 2) und die knapperen Schreibflächen
 // halten das alles auf einer Seite.
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #show: nachweis.with(
   name: "Max Mustermann",

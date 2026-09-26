@@ -4,7 +4,7 @@
 //
 // Beide Hälften des Berichts sind hier gleich geschrieben, als Markup mit
 // Bindestrichen. Als Arrays von Strings sähe es genauso aus.
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #nachweis(
   name: "Max Mustermann",

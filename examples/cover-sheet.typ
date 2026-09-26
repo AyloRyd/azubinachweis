@@ -1,5 +1,5 @@
 // Deckblatt des Berichtshefts.
-#import "@preview/azubinachweis:0.1.0": deckblatt
+#import "@preview/azubinachweis:0.1.1": deckblatt
 
 #show: deckblatt.with(
   heft-nr: "1",

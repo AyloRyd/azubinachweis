@@ -33,7 +33,7 @@ A weekly report is two halves of equal standing — the activity report
 written the same way. Either as arrays of strings:
 
 ```typ
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #nachweis(
   name: "Max Mustermann",
@@ -147,7 +147,7 @@ directly with content blocks — both are equivalent.
 ## Examples
 
 Each example is available as source and as a finished PDF in
-[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/v0.1.0/examples).
+[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/v0.1.1/examples).
 
 ### Minimal
 

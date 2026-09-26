@@ -6,7 +6,7 @@
 //
 // Ein leerer Block [] überspringt einen Abschnitt; gemischt mit benannten
 // Argumenten funktioniert es ebenso.
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #nachweis(
   name: "Max Mustermann",

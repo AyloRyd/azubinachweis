@@ -1,5 +1,5 @@
 // Tagesbericht: eine Tabellenzeile pro Datum, mit Stundenspalte und Summe.
-#import "@preview/azubinachweis:0.1.0": tagesbericht
+#import "@preview/azubinachweis:0.1.1": tagesbericht
 
 #show: tagesbericht.with(
   name: "Max Mustermann",

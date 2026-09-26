@@ -1,4 +1,4 @@
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #show: nachweis.with(
   name: "Max Mustermann",

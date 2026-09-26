@@ -26,7 +26,7 @@ Tätigkeitsbericht und dem Schulbericht —, also werden beide gleich
 geschrieben. Entweder als Arrays von Strings:
 
 ```typ
-#import "@preview/azubinachweis:0.1.0": nachweis
+#import "@preview/azubinachweis:0.1.1": nachweis
 
 #nachweis(
   name: "Max Mustermann",
@@ -143,7 +143,7 @@ Inhaltsblöcken aufrufen — beides ist gleichwertig.
 ## Beispiele
 
 Jedes Beispiel steht als Quelltext und als fertiges PDF im Ordner
-[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/v0.1.0/examples).
+[`examples/`](https://github.com/AyloRyd/azubinachweis/tree/v0.1.1/examples).
 
 ### Minimal
 
