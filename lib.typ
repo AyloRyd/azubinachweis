@@ -113,16 +113,21 @@
 #let _parts(labels, line, head-fill, head-ink, ink, padding, border, min-height) = {
   let stroke-style = border + line
 
-  // Bullet list with uniform spacing
-  let bullets(items) = list(
-    spacing: 0.75em,
-    body-indent: 0.55em,
-    indent: 0.2em,
-    ..items,
-  )
+  // The one list style of the sheet, applied whichever way a section was
+  // written: as an array of strings, or as markup with "-" or "+" in a content
+  // block. Typst's own defaults indent differently, so without this the two
+  // spellings of the same section would not look alike on the page.
+  let list-style = (spacing: 0.75em, body-indent: 0.55em, indent: 0.2em)
 
-  // Strings stay as they are, arrays become bullet lists, content passes through
-  let as-content(value) = if type(value) == array { bullets(value) } else { value }
+  let bullets(items) = list(..list-style, ..items)
+
+  // Strings stay as they are, arrays become bullet lists, content is set in the
+  // same style and otherwise passes through untouched.
+  let as-content(value) = if type(value) == array { bullets(value) } else {
+    set list(..list-style)
+    set enum(..list-style)
+    value
+  }
 
   // Grey header cell, optionally with the hour count on the right.
   // Deliberately no grid when there are no hours: a 1fr inside would stretch

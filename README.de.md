@@ -21,32 +21,63 @@ für handschriftliche Einträge.
 
 ## Schnellstart
 
+Ein Wochenbericht besteht aus zwei gleichrangigen Hälften — dem
+Tätigkeitsbericht und dem Schulbericht —, also werden beide gleich
+geschrieben. Entweder als Arrays von Strings:
+
 ```typ
 #import "@preview/azubinachweis:0.1.0": nachweis
 
-#show: nachweis.with(
+#nachweis(
   name: "Max Mustermann",
   ausbildungsjahr: "1. Ausbildungsjahr",
   kalenderwoche: "37",
   jahr: "2026",
+  taetigkeiten: (
+    "Einführung in den ersten Musterbereich des Ausbildungsbetriebs",
+    "Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse",
+    "Teilnahme an einer Musterbesprechung des Musterteams",
+  ),
   schulbericht: (
     "Erstes Musterthema des Berufsschulunterrichts wurde behandelt",
     "Zweites Musterthema mit praktischen Übungen am Musterbeispiel",
   ),
 )
-
-- Einführung in den ersten Musterbereich des Ausbildungsbetriebs
-- Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
-- Teilnahme an einer Musterbesprechung des Musterteams
 ```
 
-Der Text des Dokuments bildet den Tätigkeitsbericht. Alle weiteren Abschnitte
-werden als Argumente übergeben.
+oder als gewöhnliches Typst-Markup, ganz ohne Anführungszeichen:
 
-### Abschnitte als Inhaltsblöcke
+```typ
+#nachweis(
+  name: "Max Mustermann",
+  ausbildungsjahr: "1. Ausbildungsjahr",
+  kalenderwoche: "37",
+  jahr: "2026",
+  taetigkeiten: [
+    - Einführung in den ersten Musterbereich des Ausbildungsbetriebs
+    - Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
+    - Teilnahme an einer Musterbesprechung des Musterteams
+  ],
+  schulbericht: [
+    - Erstes Musterthema des Berufsschulunterrichts wurde behandelt
+    - Zweites Musterthema mit praktischen Übungen am Musterbeispiel
+  ],
+)
+```
 
-Wer lieber gewöhnliches Typst-Markup schreibt als Strings in Arrays, hängt die
-Abschnitte als Inhaltsblöcke an den Aufruf — in der Reihenfolge, in der sie im
+Beides ergibt denselben Nachweis und wird identisch gesetzt: Einzug und
+Abstände der Listen gibt das Paket vor, gleich welcher Schreibweise. Mischen
+ist erlaubt — ein Abschnitt als Array, der nächste als Markup —, und Markup
+erlaubt zusätzlich Nummerierung, Auszeichnungen, Links, Fußnoten und Code im
+Berichtstext.
+
+Jeder Abschnitt nimmt beide Formen: `unterweisungen`, `bemerkungen`,
+`weiteres` und der `inhalt` eines Tages im `tagesbericht`.
+
+### Kurzformen
+
+Für dieselbe Sache gibt es zwei kürzere Schreibweisen. Inhaltsblöcke lassen
+sich an den Aufruf anhängen — in der Reihenfolge, in der die Abschnitte im
 Dokument stehen:
 
 ```typ
@@ -65,9 +96,8 @@ Dokument stehen:
 | `tagesbericht` | Schulbericht | Bemerkungen | — |
 | `deckblatt` | freier Zusatz | — | — |
 
-Damit sind Nummerierung, Auszeichnungen, Links, Fußnoten und Code im
-Berichtstext möglich, und es muss nichts escaped werden. Ein leerer Block `[]`
-überspringt einen Abschnitt, benannte Argumente bleiben daneben gültig:
+Ein leerer Block `[]` überspringt einen Abschnitt, benannte Argumente bleiben
+daneben gültig:
 
 ```typ
 #nachweis(taetigkeiten: ("Aus einem Array",))[][
@@ -75,8 +105,19 @@ Berichtstext möglich, und es muss nichts escaped werden. Ein leerer Block `[]`
 ]
 ```
 
-Beide Schreibweisen sind gleichwertig; `#show:` wirkt wie ein einzelner erster
-Block. Was `nachweis` im Dokumenttext bekommt, ist also der Tätigkeitsbericht.
+Und `#show: nachweis.with(..)` wirkt wie ein einzelner erster Block, macht den
+Dokumenttext also zum Tätigkeitsbericht:
+
+```typ
+#show: nachweis.with(name: "Max Mustermann", kalenderwoche: "37", jahr: "2026")
+
+- Einführung in den ersten Musterbereich des Ausbildungsbetriebs
+- Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
+```
+
+Das ist bequem, wenn eine Datei einen Nachweis enthält, behandelt aber die eine
+Hälfte des Berichts anders als die andere. Wer beide Abschnitte benennt, wie im
+Schnellstart, hält sie gleichrangig.
 
 Das ist gleichzeitig der **minimale Aufbau**: Titelzeile, Name und
 Ausbildungsjahr, Tätigkeitsbericht, Schulbericht, eine leere Fläche für
@@ -196,8 +237,7 @@ schulbericht: ("Erster Punkt", "Zweiter Punkt"),      // Aufzählung
 schulbericht: [Beliebiges #strong[Markup]],           // eigener Inhalt
 ```
 
-Oder als Inhaltsblock hinter dem Aufruf — siehe [Abschnitte als
-Inhaltsblöcke](#abschnitte-als-inhaltsbl%C3%B6cke).
+Oder als Inhaltsblock hinter dem Aufruf — siehe [Kurzformen](#kurzformen).
 
 ### Aufbau und Beschriftung
 

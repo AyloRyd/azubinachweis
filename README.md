@@ -28,33 +28,62 @@ is the actual thing, and it is what appears on the page and in your code.
 
 ## Quick start
 
+A weekly report is two halves of equal standing — the activity report
+(*Tätigkeitsbericht*) and the school report (*Schulbericht*) — so both are
+written the same way. Either as arrays of strings:
+
 ```typ
 #import "@preview/azubinachweis:0.1.0": nachweis
 
-#show: nachweis.with(
+#nachweis(
   name: "Max Mustermann",
   ausbildungsjahr: "1. Ausbildungsjahr",
   kalenderwoche: "37",
   jahr: "2026",
+  taetigkeiten: (
+    "Einführung in den ersten Musterbereich des Ausbildungsbetriebs",
+    "Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse",
+    "Teilnahme an einer Musterbesprechung des Musterteams",
+  ),
   schulbericht: (
     "Erstes Musterthema des Berufsschulunterrichts wurde behandelt",
     "Zweites Musterthema mit praktischen Übungen am Musterbeispiel",
   ),
 )
-
-- Einführung in den ersten Musterbereich des Ausbildungsbetriebs
-- Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
-- Teilnahme an einer Musterbesprechung des Musterteams
 ```
 
-The document body becomes the activity report (*Tätigkeitsbericht*). Every
-other section is passed as an argument.
+or as ordinary Typst markup, with nothing to quote or escape:
 
-### Sections as content blocks
+```typ
+#nachweis(
+  name: "Max Mustermann",
+  ausbildungsjahr: "1. Ausbildungsjahr",
+  kalenderwoche: "37",
+  jahr: "2026",
+  taetigkeiten: [
+    - Einführung in den ersten Musterbereich des Ausbildungsbetriebs
+    - Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
+    - Teilnahme an einer Musterbesprechung des Musterteams
+  ],
+  schulbericht: [
+    - Erstes Musterthema des Berufsschulunterrichts wurde behandelt
+    - Zweites Musterthema mit praktischen Übungen am Musterbeispiel
+  ],
+)
+```
 
-If you would rather write ordinary Typst markup than strings in arrays, append
-the sections as content blocks to the call, in the order they appear in the
-document:
+The two spell the same sheet and set identically: the package gives every list
+its own indent and spacing, however it was written. Mixing them is fine — one
+section as an array, the next as markup — and markup buys you numbering,
+emphasis, links, footnotes and code inside a report.
+
+Every section takes both forms: `unterweisungen`, `bemerkungen`, `weiteres`,
+and the `inhalt` of a day in a `tagesbericht`.
+
+### Shorthands
+
+Two shorter spellings exist for the same thing. Content blocks may be appended
+to the call, in the order the sections appear in the document:
 
 ```typ
 #nachweis(name: "Max Mustermann", kalenderwoche: "38", jahr: "2026")[
@@ -72,9 +101,7 @@ document:
 | `tagesbericht` | school report (*Schulbericht*) | trainer's remarks (*Bemerkungen*) | — |
 | `deckblatt` | free addition (*Zusatz*) | — | — |
 
-This gives you numbering, emphasis, links, footnotes and code inside the report
-text, with nothing to escape. An empty block `[]` skips a section, and named
-arguments still work alongside:
+An empty block `[]` skips a section, and named arguments still work alongside:
 
 ```typ
 #nachweis(taetigkeiten: ("From an array",))[][
@@ -82,9 +109,19 @@ arguments still work alongside:
 ]
 ```
 
-Both spellings are equivalent; `#show:` acts as a single first block. So what
-`nachweis` receives as the document body is the activity report
-(*Tätigkeitsbericht*).
+And `#show: nachweis.with(..)` acts as a single first block, which makes the
+document body the activity report (*Tätigkeitsbericht*):
+
+```typ
+#show: nachweis.with(name: "Max Mustermann", kalenderwoche: "37", jahr: "2026")
+
+- Einführung in den ersten Musterbereich des Ausbildungsbetriebs
+- Bearbeitung einer Musteraufgabe zur Einschätzung der Vorkenntnisse
+```
+
+That is convenient for one sheet per file, but it does treat one half of the
+report differently from the other. Naming both sections, as in the quick start,
+keeps them symmetric.
 
 That is also the **minimal setup**: title line, name and training year
 (*Ausbildungsjahr*), the activity report (*Tätigkeitsbericht*), the school
@@ -208,8 +245,7 @@ schulbericht: ("First point", "Second point"),        // a bullet list
 schulbericht: [Arbitrary #strong[markup]],            // your own content
 ```
 
-Or as a content block after the call — see [Sections as content
-blocks](#sections-as-content-blocks).
+Or as a content block after the call — see [Shorthands](#shorthands).
 
 ### Structure and labels
 
