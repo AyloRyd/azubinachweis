@@ -1,0 +1,5 @@
+# Publishing tooling: the script that submits the package to Typst Universe and
+# its documentation. It is not part of the package and has no business in the
+# repository — it names a GitHub account, a local checkout path and a workflow
+# that belongs to whoever publishes, not to whoever uses the template.
+.publish/
