@@ -17,7 +17,7 @@
   zeitraum: "07.09. – 11.09.2026",
 
   kopfspalten: 2,
-  luft: 0.6cm,
+  luft: 1cm,
   mindesthoehe: 1.5cm,
   unterschrifthoehe: 1.5cm,
   bezeichnungen: (ausbilder: "Ausbilder"),

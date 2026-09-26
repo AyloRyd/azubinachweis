@@ -471,14 +471,14 @@
   kopftext: rgb("#000000"),
   fliess: rgb("#1a1a1a"),
   rahmen: 0.5pt,
-  luft: 0.85cm,
+  luft: 1.27cm,
   polster: 11pt,
   mindesthoehe: 2cm,
   rand: (x: 2.2cm, top: 2cm, bottom: 1.8cm),
   // shrink-to-fit: the floors below are as small as the sheet may get before
   // a second page is preferred to an unusable form
   anpassen: true,
-  luft-min: 0.45cm,
+  luft-min: 0.8cm,
   mindesthoehe-min: 1.2cm,
   unterschrifthoehe-min: 1.4cm,
   // content blocks: [Tätigkeitsbericht][Schulbericht][Bemerkungen]
@@ -495,6 +495,12 @@
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
+  // Every gap in the sheet is an explicit v(luft). Left at its default, the
+  // automatic spacing between blocks would add itself on top of each one — and
+  // not on top of the gap above the signatures, where the 1fr swallows it — so
+  // the gaps would come out unequal. Zero here makes luft mean the distance it
+  // says it is, everywhere.
+  set block(spacing: 0pt)
 
   // The sheet as a function of the elastic amounts, so that the probes taken
   // in _lay and the final render go through exactly the same code.
@@ -626,14 +632,14 @@
   kopftext: rgb("#000000"),
   fliess: rgb("#1a1a1a"),
   rahmen: 0.5pt,
-  luft: 0.85cm,
+  luft: 1.27cm,
   polster: 11pt,
   mindesthoehe: 2cm,
   spalten: (datum: 2.7cm, tag: 2.3cm, stunden: 1.5cm),
   rand: (x: 2.2cm, top: 2cm, bottom: 1.8cm),
   // shrink-to-fit, see nachweis
   anpassen: true,
-  luft-min: 0.45cm,
+  luft-min: 0.8cm,
   mindesthoehe-min: 1.2cm,
   unterschrifthoehe-min: 1.4cm,
   // content blocks: [Schulbericht][Bemerkungen]
@@ -648,6 +654,12 @@
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
+  // Every gap in the sheet is an explicit v(luft). Left at its default, the
+  // automatic spacing between blocks would add itself on top of each one — and
+  // not on top of the gap above the signatures, where the 1fr swallows it — so
+  // the gaps would come out unequal. Zero here makes luft mean the distance it
+  // says it is, everywhere.
+  set block(spacing: 0pt)
 
   // The sheet as a function of the elastic amounts, see nachweis
   let sheet(
@@ -805,14 +817,14 @@
   kopftext: rgb("#000000"),
   fliess: rgb("#1a1a1a"),
   rahmen: 0.5pt,
-  luft: 0.85cm,
+  luft: 1.27cm,
   polster: 11pt,
   rand: (x: 2.2cm, top: 3.5cm, bottom: 2cm),
   // shrink-to-fit, see nachweis. A cover sheet has no empty sections, so
   // mindesthoehe exists here only to keep the three functions alike.
   anpassen: true,
   mindesthoehe: 2cm,
-  luft-min: 0.45cm,
+  luft-min: 0.8cm,
   mindesthoehe-min: 1.2cm,
   unterschrifthoehe-min: 1.4cm,
   // content block: [free addition below the table]
@@ -825,6 +837,12 @@
   set page(paper: "a4", margin: rand)
   set text(font: schrift, size: schriftgroesse, fill: fliess, lang: "de")
   set par(leading: 0.65em)
+  // Every gap in the sheet is an explicit v(luft). Left at its default, the
+  // automatic spacing between blocks would add itself on top of each one — and
+  // not on top of the gap above the signatures, where the 1fr swallows it — so
+  // the gaps would come out unequal. Zero here makes luft mean the distance it
+  // says it is, everywhere.
+  set block(spacing: 0pt)
 
   // The sheet as a function of the elastic amounts, see nachweis
   let sheet(

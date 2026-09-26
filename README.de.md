@@ -222,7 +222,7 @@ Inhaltsblöcke](#abschnitte-als-inhaltsbl%C3%B6cke).
 | `kopftext` | Schriftfarbe der Kopfzellen | `#000000` |
 | `fliess` | Schriftfarbe des Fließtexts | `#1a1a1a` |
 | `rahmen` | Rahmenstärke | `0.5pt` |
-| `luft` | Abstand zwischen den Abschnitten | `0.85cm` |
+| `luft` | Abstand zwischen den Blöcken des Nachweises — der Satz fügt von sich aus keinen weiteren hinzu, es ist also genau dieser Abstand | `1.27cm` |
 | `polster` | Innenabstand der Zellen | `11pt` |
 | `mindesthoehe` | Höhe leerer Abschnitte (Schreibfläche) | `2cm` |
 | `rand` | Seitenränder | `(x: 2.2cm, top: 2cm, bottom: 1.8cm)` |
@@ -243,7 +243,7 @@ zweites Blatt.
 | Parameter | Bedeutung | Standard |
 | --- | --- | --- |
 | `anpassen` | verkleinert so weit nötig, um auf einer Seite zu bleiben | `true` |
-| `luft-min` | Untergrenze für `luft` | `0.45cm` |
+| `luft-min` | Untergrenze für `luft` | `0.8cm` |
 | `mindesthoehe-min` | Untergrenze für `mindesthoehe` | `1.2cm` |
 | `unterschrifthoehe-min` | Untergrenze für `unterschrifthoehe` | `1.4cm` |
 
@@ -356,7 +356,7 @@ selbst setzen möchten und `anpassen: false` gewählt haben.
 In dieser Reihenfolge nachjustieren:
 
 1. `kopfspalten: 2` — halbiert die Höhe der Kopfdatentabelle
-2. `luft: 0.6cm` — engere Abstände zwischen den Abschnitten
+2. `luft: 1cm` — engere Abstände zwischen den Abschnitten
 3. `mindesthoehe: 1.5cm` und `unterschrifthoehe: 1.5cm` — kleinere Schreibflächen
 4. `schriftgroesse: 9.5pt`
 

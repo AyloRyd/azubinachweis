@@ -234,7 +234,7 @@ blocks](#sections-as-content-blocks).
 | `kopftext` | text colour of the header cells | `#000000` |
 | `fliess` | body text colour (*Fließtext*) | `#1a1a1a` |
 | `rahmen` | border thickness (*Rahmen*) | `0.5pt` |
-| `luft` | vertical spacing between sections (*Luft*) | `0.85cm` |
+| `luft` | gap between the blocks of the sheet (*Luft*) — the sheet adds no spacing of its own, so this is the distance you get | `1.27cm` |
 | `polster` | cell padding (*Polster*) | `11pt` |
 | `mindesthoehe` | height of empty sections (*Mindesthöhe*), i.e. the writing area | `2cm` |
 | `rand` | page margins (*Rand*) | `(x: 2.2cm, top: 2cm, bottom: 1.8cm)` |
@@ -254,7 +254,7 @@ than a second sheet.
 | Parameter | Meaning | Default |
 | --- | --- | --- |
 | `anpassen` | shrink as needed to stay on one page (*Anpassung*) | `true` |
-| `luft-min` | floor for `luft` | `0.45cm` |
+| `luft-min` | floor for `luft` | `0.8cm` |
 | `mindesthoehe-min` | floor for `mindesthoehe` | `1.2cm` |
 | `unterschrifthoehe-min` | floor for `unterschrifthoehe` | `1.4cm` |
 
@@ -392,7 +392,7 @@ enough — or when you would rather place everything yourself and have set
 Adjust in this order:
 
 1. `kopfspalten: 2` — halves the height of the header table
-2. `luft: 0.6cm` — tighter spacing between sections
+2. `luft: 1cm` — tighter spacing between sections
 3. `mindesthoehe: 1.5cm` and `unterschrifthoehe: 1.5cm` — smaller writing areas
 4. `schriftgroesse: 9.5pt`
 

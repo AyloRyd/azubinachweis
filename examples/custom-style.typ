@@ -18,7 +18,7 @@
   kopftext: rgb("#16233a"),
   fliess: rgb("#16233a"),
   rahmen: 0.7pt,
-  luft: 0.7cm,
+  luft: 1.15cm,
   mindesthoehe: 2.6cm,
 
   // Beschriftungen überschreiben
