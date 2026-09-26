@@ -545,6 +545,10 @@
       section(labels.weiteres, weiteres)
     }
 
+    // The gap above the signatures is a luft like any other, so that fitting
+    // shrinks it instead of letting it vanish: the 1fr alone collapses to zero
+    // under pressure and glues the signature block to the section above it.
+    v(luft)
     if spacer { v(1fr) }
     signatures(unterschriften, height: unterschrifthoehe)
   }
@@ -732,6 +736,10 @@
       section(labels.weiteres, weiteres)
     }
 
+    // The gap above the signatures is a luft like any other, so that fitting
+    // shrinks it instead of letting it vanish: the 1fr alone collapses to zero
+    // under pressure and glues the signature block to the section above it.
+    v(luft)
     if spacer { v(1fr) }
     signatures(unterschriften, height: unterschrifthoehe)
   }
@@ -861,6 +869,7 @@
     }
 
     if unterschriften.len() > 0 {
+      v(luft)
       if spacer { v(1fr) }
       signatures(unterschriften, height: unterschrifthoehe)
     }
